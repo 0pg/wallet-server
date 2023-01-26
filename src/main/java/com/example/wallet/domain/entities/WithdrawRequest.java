@@ -1,22 +1,10 @@
-package com.example.wallet.domain.entities.event;
-
-import com.example.wallet.domain.ports.WalletEventVisitor;
+package com.example.wallet.domain.entities;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
 
-public record WithdrawStarted(
-        long eventId,
+public record WithdrawRequest(
         String walletAddress,
-        BigInteger nonce,
         String destinationAddress,
-        BigInteger amount,
-        LocalDateTime occurredAt
-
-        ) implements WalletEvent {
-        @Override
-        public CompletableFuture<Void> accept(WalletEventVisitor visitor) {
-                return visitor.visit(this);
-        }
+        BigInteger amount
+        ) {
 }

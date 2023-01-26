@@ -1,4 +1,4 @@
-package com.example.wallet.domain.ports;
+package com.example.wallet.server.ports;
 
 import com.example.wallet.domain.entities.Transaction;
 

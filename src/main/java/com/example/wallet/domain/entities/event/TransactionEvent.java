@@ -1,6 +1,10 @@
-package com.example.wallet.domain.event;
+package com.example.wallet.domain.entities.event;
 
-public interface TransactionEvent extends DomainEvent {
-    String walletId();
-    String hash();
+public sealed interface TransactionEvent
+        extends DomainEvent
+        permits TransactionCommitted, TransactionConfirmed, TransactionMined, TransactionRollback, TransactionStarted {
+    String transactionId();
+
+    String srcAddress();
+    String dstAddress();
 }

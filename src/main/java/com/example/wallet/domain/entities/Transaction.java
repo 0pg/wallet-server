@@ -1,44 +1,24 @@
-package com.example.wallet.domain.entities.eth;
+package com.example.wallet.domain.entities;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 
-public class Transaction {
-    private static final int BLOCK_COUNT_FOR_CONFIRMATION = 12;
+public record Transaction(
+        String id,
+        String srcAddress,
+        String dstAddress,
+        int confirmationCount,
+        BigInteger amount,
+        TransactionStatus status) {
 
-    private final String id;
-    private int confirmationCount;
-
-    public final BigDecimal withdrawAmount;
-    public TransactionStatus status;
-
-    public Transaction(String id, BigDecimal balanceChanges) {
-        this.id = id;
-        this.withdrawAmount = balanceChanges;
-        this.status = TransactionStatus.Pending;
-        this.confirmationCount = 0;
+    public Transaction(String id, String srcAddress, String dstAddress, BigInteger withdrawAmount) {
+        this(id, srcAddress, dstAddress, 0, withdrawAmount, TransactionStatus.Pending);
     }
 
-    public String id() {
-        return id;
+    public Transaction statusUpdated(TransactionStatus updatedStatus) {
+        return new Transaction(id, srcAddress, dstAddress, confirmationCount, amount, updatedStatus);
     }
 
-    public void commit() {
-        confirmationCount += Math.min(confirmationCount + 1, BLOCK_COUNT_FOR_CONFIRMATION);
-        switch (status) {
-            case Pending -> {
-                if (confirmationCount < BLOCK_COUNT_FOR_CONFIRMATION) {
-                    status = TransactionStatus.Mined;
-                } else {
-                    status = TransactionStatus.Confirmed;
-                }
-            }
-            case Mined -> {
-                if (confirmationCount >= BLOCK_COUNT_FOR_CONFIRMATION) {
-                    status = TransactionStatus.Confirmed;
-                }
-            }
-            case Confirmed -> {
-            }
-        }
+    public Transaction confirmed(int count) {
+        return new Transaction(id, srcAddress, dstAddress, confirmationCount + count, amount, status);
     }
 }

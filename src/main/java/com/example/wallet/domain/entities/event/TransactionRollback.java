@@ -1,13 +1,21 @@
-package com.example.wallet.domain.event;
+package com.example.wallet.domain.entities.event;
 
-import java.math.BigDecimal;
+import com.example.wallet.domain.DomainEventHandler;
+
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 
 public record TransactionRollback(
-        long id,
+        long eventId,
+        String srcAddress,
+
+        String dstAddress,
         LocalDateTime occurredAt,
-        String walletId,
-        String hash,
-        BigDecimal balanceChanges
+        String transactionId,
+        BigInteger withdrawAmount
 ) implements TransactionEvent {
+    @Override
+    public void accept(DomainEventHandler handler) {
+        handler.handle(this);
+    }
 }

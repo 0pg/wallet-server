@@ -1,41 +1,123 @@
-package com.example.wallet.domain.logic;
+package com.example.wallet.domain.programs;
 
 import com.example.wallet.domain.entities.EthWallet;
 import com.example.wallet.domain.entities.Transaction;
-import com.example.wallet.domain.entities.event.DomainEvent;
-import com.example.wallet.domain.entities.event.WithdrawStarted;
-import com.example.wallet.domain.repositories.EthWalletRepository;
-import com.example.wallet.domain.repositories.TransactionRepository;
+import com.example.wallet.domain.entities.TransactionStatus;
+import com.example.wallet.domain.entities.event.Deposited;
+import com.example.wallet.domain.entities.event.TransactionRequested;
+import com.example.wallet.domain.entities.event.WalletCreated;
+import com.example.wallet.domain.entities.event.Withdrawn;
 import lombok.NonNull;
-import org.jetbrains.annotations.NotNull;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
+import java.util.concurrent.Callable;
 
-public class EthWalletPrograms {
-    private EthWalletRepository walletRepository;
-    private TransactionRepository transactionRepository;
+public class EthWalletProgram {
+    private final Callable<LocalDateTime> timestampProvider;
+    private final Callable<Long> eventIdProvider;
 
-    public CompletableFuture<DomainEvent> startWithdraw(@NonNull EthWallet wallet, @NonNull String to, @NonNull BigInteger amount) {
-        return getPendingBalance(wallet)
-                .thenCompose(pendingBalance -> {
-                    if (wallet.balance().subtract(pendingBalance).longValue() < amount.longValue()) {
-                        return CompletableFuture.failedFuture(new RuntimeException());
-                    } else {
-                        return transactionRepository.findTransactionCount(wallet.address())
-                                .thenApply(nonce -> new WithdrawStarted(wallet.address(), nonce, to, amount, LocalDateTime.now()));
-                    }
-                });
+    public EthWalletProgram(@NonNull Callable<LocalDateTime> timestampProvider, @NonNull Callable<Long> eventIdProvider) {
+        this.timestampProvider = timestampProvider;
+        this.eventIdProvider = eventIdProvider;
     }
 
-    private CompletableFuture<BigInteger> getPendingBalance(@NotNull EthWallet wallet) {
-        return transactionRepository.getAllTransactions(wallet.address())
-                .thenApply(transactions -> transactions.stream()
-                        .filter(tx -> tx.status().isPending())
-                        .map(Transaction::withdrawAmount)
-                        .reduce(BigInteger.ZERO, BigInteger::add));
+    public Result<EthWallet> createWallet(@NonNull String address, @NonNull String secret) {
+        try {
+            Result.Builder<EthWallet> builder = Result.builder();
+            LocalDateTime currentDateTime = currentDateTime();
+            builder.addEvent(new WalletCreated(generateEventId(), address, secret, currentDateTime));
+            EthWallet wallet = new EthWallet(address);
+            return builder.build(wallet);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    public Result<EthWallet> prepareWithdraw(@NonNull EthWallet wallet, @NonNull String dstAddress, @NonNull BigInteger amount, @NonNull List<Transaction> ongoingTransactions) {
+        assertWithdrawable(wallet, dstAddress, amount, ongoingTransactions);
 
+        Result.Builder<EthWallet> builder = Result.builder();
+        return builder
+                .addEvent(new TransactionRequested(generateEventId(), wallet.address(), dstAddress, amount, currentDateTime()))
+                .build(wallet);
+    }
+
+    public Result<EthWallet> withdraw(@NonNull EthWallet wallet, @NonNull Transaction tx) {
+        if (tx.status() != TransactionStatus.Confirmed) {
+            throw new RuntimeException();
+        }
+
+        if (wallet.address().equals(tx.srcAddress()) == false) {
+            throw new RuntimeException();
+        }
+
+        Result.Builder<EthWallet> builder = Result.builder();
+        BigInteger amount = tx.amount();
+        builder.addEvent(new Withdrawn(generateEventId(), wallet.address(), amount, currentDateTime()));
+        return builder.build(wallet.withdrawn(amount));
+    }
+
+    public Result<EthWallet> deposit(@NonNull EthWallet wallet, @NonNull Transaction tx) {
+        if (tx.status() != TransactionStatus.Confirmed) {
+            throw new RuntimeException();
+        }
+
+        if (wallet.address().equals(tx.dstAddress()) == false) {
+            throw new RuntimeException();
+        }
+
+        Result.Builder<EthWallet> builder = Result.builder();
+        BigInteger amount = tx.amount();
+        builder.addEvent(new Deposited(generateEventId(), wallet.address(), amount, currentDateTime()));
+        return builder.build(wallet.deposited(amount));
+    }
+
+    private void assertWithdrawable(
+            EthWallet wallet,
+            String to,
+            BigInteger amount,
+            List<Transaction> ongoingTransactions) {
+        if (amount.longValue() <= 0L) {
+            throw new RuntimeException();
+        }
+
+        if (wallet.address().equals(to)) {
+            throw new RuntimeException();
+        }
+
+        assertWithdrawBalance(wallet, amount, ongoingTransactions);
+    }
+
+    private void assertWithdrawBalance(EthWallet wallet, BigInteger amount, List<Transaction> transactions) {
+        BigInteger pendingWithdraw = getPendingBalance(transactions);
+
+        if (wallet.balance().subtract(pendingWithdraw).longValue() < amount.longValue()) {
+            throw new RuntimeException();
+        }
+    }
+
+    private BigInteger getPendingBalance(List<Transaction> transactions) {
+        return transactions.stream()
+                .filter(tx -> tx.status().isOngoingStatus())
+                .map(Transaction::amount)
+                .reduce(BigInteger.ZERO, BigInteger::add);
+    }
+
+    private LocalDateTime currentDateTime() {
+        try {
+            return timestampProvider.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private long generateEventId() {
+        try {
+            return eventIdProvider.call();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

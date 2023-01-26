@@ -1,4 +1,4 @@
-package com.example.wallet.server.adaptor;
+package com.example.wallet.server.ports;
 
 import java.math.BigInteger;
 

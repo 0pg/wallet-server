@@ -1,8 +1,8 @@
-package com.example.wallet.domain.programs;
+package com.example.wallet.domain;
 
 import com.example.wallet.domain.entities.event.*;
 
-public interface DomainEventProgram {
+public interface DomainEventHandler {
     void handle(TransactionConfirmed event);
 
     void handle(TransactionCommitted event);
