@@ -1,23 +1,19 @@
-package com.example.wallet.domain.programs;
+package com.example.wallet.domain;
 
-import com.example.wallet.domain.entities.event.*;
+import com.example.wallet.domain.entity.event.*;
 
-public interface DomainEventProgram {
-    void handle(TransactionConfirmed event);
+public interface DomainEventHandler<T> {
+    T handle(TransactionConfirmed event);
 
-    void handle(TransactionCommitted event);
+    T handle(TransactionCommitted event);
 
-    void handle(TransactionRollback event);
+    T handle(TransactionRollback event);
 
-    void handle(TransactionMined event);
+    T handle(TransactionStarted event);
 
-    void handle(TransactionStarted event);
+    T handle(Deposited event);
 
-    void handle(Deposited event);
+    T handle(Withdrawn event);
 
-    void handle(Withdrawn event);
-
-    void handle(WalletCreated event);
-
-    void handle(TransactionRequested event);
+    T handle(WalletCreated event);
 }
