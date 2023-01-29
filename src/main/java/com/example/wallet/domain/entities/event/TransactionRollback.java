@@ -7,9 +7,6 @@ import java.time.LocalDateTime;
 
 public record TransactionRollback(
         long eventId,
-        String srcAddress,
-
-        String dstAddress,
         LocalDateTime occurredAt,
         String transactionId,
         BigInteger withdrawAmount

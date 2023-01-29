@@ -4,16 +4,11 @@ import com.example.wallet.domain.entities.EthWallet;
 import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.Deposited;
-import com.example.wallet.domain.entities.event.DomainEvent;
-import com.example.wallet.domain.entities.event.TransactionRequested;
 import com.example.wallet.domain.entities.event.Withdrawn;
-import com.example.wallet.server.ports.EthWalletPort;
-import com.example.wallet.server.ports.TransactionPort;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,9 +27,7 @@ class EthWalletProgramTest {
         BigInteger amount = BigInteger.ONE;
         EthWallet wallet = new EthWallet(addressFrom, balance);
 
-        Result<EthWallet> result = sut.prepareWithdraw(wallet, addressTo, amount, List.of());
-        assertTrue(result.events.contains(new TransactionRequested(eventId, wallet.address(), addressTo, amount, currentDateTime)));
-        assertEquals(wallet, result.value);
+        sut.assertWithdraw(wallet, addressTo, amount, List.of());
     }
 
     @Test

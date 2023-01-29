@@ -1,10 +1,8 @@
 package com.example.wallet.domain.entities;
 
-import lombok.NonNull;
-
 import java.math.BigInteger;
 
-public record EthWallet(@NonNull String address, @NonNull BigInteger balance) {
+public record EthWallet(String address, BigInteger balance) {
 
     public EthWallet(String address) {
         this(address, BigInteger.ZERO);

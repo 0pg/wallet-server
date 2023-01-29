@@ -10,8 +10,8 @@ public record Transaction(
         BigInteger amount,
         TransactionStatus status) {
 
-    public Transaction(String id, String srcAddress, String dstAddress, BigInteger withdrawAmount) {
-        this(id, srcAddress, dstAddress, 0, withdrawAmount, TransactionStatus.Pending);
+    public Transaction(String id, String srcAddress, String dstAddress, BigInteger amount) {
+        this(id, srcAddress, dstAddress, 0, amount, TransactionStatus.Pending);
     }
 
     public Transaction statusUpdated(TransactionStatus updatedStatus) {

@@ -23,7 +23,7 @@ public class TransactionProgram {
     public Result<Transaction> createTransaction(@NonNull String transactionId, @NonNull String srcAddress, @NonNull String dstAddress, @NonNull BigInteger amount) {
         Result.Builder<Transaction> builder = Result.builder();
         Transaction tx = new Transaction(transactionId, srcAddress, dstAddress, amount);
-        return builder.addEvent(new TransactionStarted(generateEventId(), transactionId, srcAddress, dstAddress, currentDateTime())).build(tx);
+        return builder.addEvent(new TransactionStarted(generateEventId(), transactionId, currentDateTime())).build(tx);
     }
 
     public Result<Transaction> commit(@NonNull Transaction tx, int count) {
@@ -56,7 +56,7 @@ public class TransactionProgram {
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionCommitted(eventId, tx.srcAddress(), tx.dstAddress(), currentDateTime, tx.id(), count))
+                .addEvent(new TransactionCommitted(eventId, currentDateTime, tx.id(), count))
                 .build(tx.statusUpdated(TransactionStatus.Mined));
     }
 
@@ -66,7 +66,7 @@ public class TransactionProgram {
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionCommitted(eventId, tx.srcAddress(), tx.dstAddress(), currentDateTime, tx.id(), count))
+                .addEvent(new TransactionCommitted(eventId, currentDateTime, tx.id(), count))
                 .build(tx);
     }
 
@@ -76,7 +76,7 @@ public class TransactionProgram {
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionConfirmed(eventId, tx.srcAddress(), tx.dstAddress(), currentDateTime, tx.id()))
+                .addEvent(new TransactionConfirmed(eventId, currentDateTime, tx.id()))
                 .addEvent(new Withdrawn(eventId, tx.srcAddress(), tx.amount(), currentDateTime))
                 .addEvent(new Deposited(eventId, tx.dstAddress(), tx.amount(), currentDateTime))
                 .build(tx.statusUpdated(TransactionStatus.Confirmed));
@@ -85,7 +85,7 @@ public class TransactionProgram {
     public Result<Transaction> rollback(@NonNull Transaction tx) {
         Result.Builder<Transaction> builder = Result.builder();
         return builder
-                .addEvent(new TransactionRollback(generateEventId(), tx.srcAddress(), tx.dstAddress(), currentDateTime(), tx.id(), tx.amount()))
+                .addEvent(new TransactionRollback(generateEventId(), currentDateTime(), tx.id(), tx.amount()))
                 .build(tx.statusUpdated(TransactionStatus.Failed));
     }
 

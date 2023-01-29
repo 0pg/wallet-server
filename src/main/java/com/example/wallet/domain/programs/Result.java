@@ -26,6 +26,11 @@ public final class Result<T> {
         return new Builder<>(events);
     }
 
+    public static Result<Void> empty() {
+        return new Result<>(null);
+    }
+
+
     static class Builder<T> {
         private final List<DomainEvent> events;
 

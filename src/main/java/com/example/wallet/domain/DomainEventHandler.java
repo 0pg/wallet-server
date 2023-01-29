@@ -9,8 +9,6 @@ public interface DomainEventHandler {
 
     void handle(TransactionRollback event);
 
-    void handle(TransactionMined event);
-
     void handle(TransactionStarted event);
 
     void handle(Deposited event);
@@ -18,6 +16,4 @@ public interface DomainEventHandler {
     void handle(Withdrawn event);
 
     void handle(WalletCreated event);
-
-    void handle(TransactionRequested event);
 }

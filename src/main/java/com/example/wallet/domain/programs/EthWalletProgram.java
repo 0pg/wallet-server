@@ -4,7 +4,6 @@ import com.example.wallet.domain.entities.EthWallet;
 import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.Deposited;
-import com.example.wallet.domain.entities.event.TransactionRequested;
 import com.example.wallet.domain.entities.event.WalletCreated;
 import com.example.wallet.domain.entities.event.Withdrawn;
 import lombok.NonNull;
@@ -35,13 +34,9 @@ public class EthWalletProgram {
         }
     }
 
-    public Result<EthWallet> prepareWithdraw(@NonNull EthWallet wallet, @NonNull String dstAddress, @NonNull BigInteger amount, @NonNull List<Transaction> ongoingTransactions) {
+    public Result<Void> assertWithdraw(@NonNull EthWallet wallet, @NonNull String dstAddress, @NonNull BigInteger amount, @NonNull List<Transaction> ongoingTransactions) {
         assertWithdrawable(wallet, dstAddress, amount, ongoingTransactions);
-
-        Result.Builder<EthWallet> builder = Result.builder();
-        return builder
-                .addEvent(new TransactionRequested(generateEventId(), wallet.address(), dstAddress, amount, currentDateTime()))
-                .build(wallet);
+        return Result.empty();
     }
 
     public Result<EthWallet> withdraw(@NonNull EthWallet wallet, @NonNull Transaction tx) {
@@ -100,7 +95,7 @@ public class EthWalletProgram {
 
     private BigInteger getPendingBalance(List<Transaction> transactions) {
         return transactions.stream()
-                .filter(tx -> tx.status().isOngoingStatus())
+                .filter(tx -> tx.status().isOngoing())
                 .map(Transaction::amount)
                 .reduce(BigInteger.ZERO, BigInteger::add);
     }

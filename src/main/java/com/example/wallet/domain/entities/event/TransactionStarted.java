@@ -2,6 +2,7 @@ package com.example.wallet.domain.entities.event;
 
 import com.example.wallet.domain.DomainEventHandler;
 
+import java.math.BigInteger;
 import java.time.LocalDateTime;
 
 public record TransactionStarted(
@@ -9,6 +10,7 @@ public record TransactionStarted(
         String transactionId,
         String srcAddress,
         String dstAddress,
+        BigInteger amount,
         LocalDateTime occurredAt
 ) implements TransactionEvent {
     @Override

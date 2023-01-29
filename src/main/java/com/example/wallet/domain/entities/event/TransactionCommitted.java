@@ -6,8 +6,6 @@ import java.time.LocalDateTime;
 
 public record TransactionCommitted(
         long eventId,
-        String srcAddress,
-        String dstAddress,
         LocalDateTime occurredAt,
         String transactionId,
         int count
