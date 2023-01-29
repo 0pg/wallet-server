@@ -23,7 +23,7 @@ public class TransactionProgram {
     public Result<Transaction> createTransaction(@NonNull String transactionId, @NonNull String srcAddress, @NonNull String dstAddress, @NonNull BigInteger amount) {
         Result.Builder<Transaction> builder = Result.builder();
         Transaction tx = new Transaction(transactionId, srcAddress, dstAddress, amount);
-        return builder.addEvent(new TransactionStarted(generateEventId(), transactionId, currentDateTime())).build(tx);
+        return builder.addEvent(new TransactionStarted(generateEventId(), transactionId, srcAddress, dstAddress, amount, currentDateTime())).build(tx);
     }
 
     public Result<Transaction> commit(@NonNull Transaction tx, int count) {
