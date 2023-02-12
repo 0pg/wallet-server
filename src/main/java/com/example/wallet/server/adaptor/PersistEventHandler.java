@@ -5,21 +5,30 @@ import com.example.wallet.domain.entities.EthWallet;
 import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.event.*;
 import com.example.wallet.server.mapper.EthWalletMapper;
+import com.example.wallet.server.mapper.TransactionEventMapper;
 import com.example.wallet.server.mapper.TransactionMapper;
 import com.example.wallet.server.ports.EthWalletPort;
 import com.example.wallet.server.ports.TransactionEventPort;
 import com.example.wallet.server.ports.TransactionPort;
 import lombok.NonNull;
 
-public class PersistEventHandler implements DomainEventHandler {
+public class PersistEventHandler implements DomainEventHandler<Void> {
     private final TransactionPort transactionPort;
     private final EthWalletPort walletPort;
     private final TransactionEventPort transactionEventPort;
+    private final TxTransitionHandler txTransitionHandler;
+    private final EthWalletTransitionHandler walletTransitionHandler;
 
-    public PersistEventHandler(@NonNull TransactionPort transactionPort, @NonNull EthWalletPort walletPort, @NonNull TransactionEventPort transactionEventPort) {
+    public PersistEventHandler(@NonNull TransactionPort transactionPort,
+                               @NonNull EthWalletPort walletPort,
+                               @NonNull TransactionEventPort transactionEventPort,
+                               @NonNull TxTransitionHandler txTransitionHandler,
+                               @NonNull EthWalletTransitionHandler walletTransitionHandler) {
         this.transactionPort = transactionPort;
         this.walletPort = walletPort;
         this.transactionEventPort = transactionEventPort;
+        this.txTransitionHandler = txTransitionHandler;
+        this.walletTransitionHandler = walletTransitionHandler;
     }
 
 
@@ -36,37 +45,61 @@ public class PersistEventHandler implements DomainEventHandler {
     }
 
     @Override
-    public void handle(TransactionConfirmed event) {
-
+    public Void handle(TransactionConfirmed event) {
+        transactionEventPort.save(TransactionEventMapper.INSTANCE.fromConfirmed(event));
+        txTransitionHandler.handle(event)
+                .map(TransactionMapper.INSTANCE::toDTO)
+                .ifPresent(transactionPort::save);
+        return null;
     }
 
     @Override
-    public void handle(TransactionCommitted event) {
-
+    public Void handle(TransactionCommitted event) {
+        transactionEventPort.save(TransactionEventMapper.INSTANCE.fromCommitted(event));
+        txTransitionHandler.handle(event)
+                .map(TransactionMapper.INSTANCE::toDTO)
+                .ifPresent(transactionPort::save);
+        return null;
     }
 
     @Override
-    public void handle(TransactionRollback event) {
-
+    public Void handle(TransactionRollback event) {
+        transactionEventPort.save(TransactionEventMapper.INSTANCE.fromRollback(event));
+        txTransitionHandler.handle(event)
+                .map(TransactionMapper.INSTANCE::toDTO)
+                .ifPresent(transactionPort::save);
+        return null;
     }
 
     @Override
-    public void handle(TransactionStarted event) {
-
+    public Void handle(TransactionStarted event) {
+        txTransitionHandler.handle(event)
+                .map(TransactionMapper.INSTANCE::toDTO)
+                .ifPresent(transactionPort::save);
+        return null;
     }
 
     @Override
-    public void handle(Deposited event) {
-
+    public Void handle(Deposited event) {
+        walletTransitionHandler.handle(event)
+                .map(EthWalletMapper.INSTANCE::toDTO)
+                .ifPresent(walletPort::save);
+        return null;
     }
 
     @Override
-    public void handle(Withdrawn event) {
-
+    public Void handle(Withdrawn event) {
+        walletTransitionHandler.handle(event)
+                .map(EthWalletMapper.INSTANCE::toDTO)
+                .ifPresent(walletPort::save);
+        return null;
     }
 
     @Override
-    public void handle(WalletCreated event) {
-
+    public Void handle(WalletCreated event) {
+        walletTransitionHandler.handle(event)
+                .map(EthWalletMapper.INSTANCE::toDTO)
+                .ifPresent(walletPort::save);
+        return null;
     }
 }

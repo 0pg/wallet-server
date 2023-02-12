@@ -15,7 +15,7 @@ public final class WalletCreated implements WalletEvent {
     private final LocalDateTime occurredAt;
 
     @Override
-    public void accept(DomainEventHandler handler) {
+    public <T> void accept(DomainEventHandler<T> handler) {
         handler.handle(this);
     }
 }

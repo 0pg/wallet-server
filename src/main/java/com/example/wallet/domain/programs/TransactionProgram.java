@@ -28,7 +28,7 @@ public class TransactionProgram {
 
     public Result<Transaction> commit(@NonNull Transaction tx, int count) {
         int confirmationCount = Math.min(count, BLOCK_COUNT_FOR_CONFIRMATION - tx.confirmationCount());
-        Transaction updated = tx.confirmed(confirmationCount);
+        Transaction updated = tx.committed(confirmationCount);
 
         return switch (updated.status()) {
             case Pending -> {
@@ -76,7 +76,7 @@ public class TransactionProgram {
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionConfirmed(eventId, currentDateTime, tx.id()))
+                .addEvent(new TransactionConfirmed(eventId, currentDateTime, tx.id(), tx.confirmationCount()))
                 .addEvent(new Withdrawn(eventId, tx.srcAddress(), tx.amount(), currentDateTime))
                 .addEvent(new Deposited(eventId, tx.dstAddress(), tx.amount(), currentDateTime))
                 .build(tx.statusUpdated(TransactionStatus.Confirmed));

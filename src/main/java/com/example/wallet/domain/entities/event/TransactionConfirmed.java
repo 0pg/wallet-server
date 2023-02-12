@@ -12,9 +12,10 @@ public final class TransactionConfirmed implements TransactionEvent {
     private final long eventId;
     private final LocalDateTime occurredAt;
     private final String transactionId;
+    private final int confirmedCount;
 
     @Override
-    public void accept(DomainEventHandler handler) {
+    public <T> void accept(DomainEventHandler<T> handler) {
         handler.handle(this);
     }
 }

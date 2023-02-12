@@ -12,7 +12,11 @@ public record Transaction(String id, String srcAddress, String dstAddress, int c
         return new Transaction(id, srcAddress, dstAddress, confirmationCount, amount, updatedStatus);
     }
 
-    public Transaction confirmed(int count) {
+    public Transaction committed(int count) {
         return new Transaction(id, srcAddress, dstAddress, confirmationCount + count, amount, status);
+    }
+
+    public Transaction confirmed(int count) {
+        return new Transaction(id, srcAddress, dstAddress, count, amount, TransactionStatus.Confirmed);
     }
 }

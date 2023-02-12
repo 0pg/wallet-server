@@ -16,7 +16,7 @@ public final class TransactionRollback implements TransactionEvent {
     private final BigInteger withdrawAmount;
 
     @Override
-    public void accept(DomainEventHandler handler) {
+    public <T> void accept(DomainEventHandler<T> handler) {
         handler.handle(this);
     }
 }

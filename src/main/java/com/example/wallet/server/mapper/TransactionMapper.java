@@ -1,6 +1,7 @@
 package com.example.wallet.server.mapper;
 
 import com.example.wallet.domain.entities.Transaction;
+import com.example.wallet.domain.entities.event.TransactionStarted;
 import com.example.wallet.server.entities.TransactionDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
@@ -13,4 +14,6 @@ public interface TransactionMapper {
     Transaction toEntity(TransactionDTO dto);
 
     TransactionDTO toDTO(Transaction entity);
+
+    Transaction fromStartedEvent(TransactionStarted event);
 }

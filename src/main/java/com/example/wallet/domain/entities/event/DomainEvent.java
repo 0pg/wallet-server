@@ -9,5 +9,5 @@ public sealed interface DomainEvent permits TransactionEvent, WalletEvent {
 
     LocalDateTime getOccurredAt();
 
-    void accept(DomainEventHandler handler);
+    <T> void accept(DomainEventHandler<T> handler);
 }

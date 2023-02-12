@@ -15,7 +15,7 @@ public final class TransactionCommitted implements TransactionEvent {
     private final int count;
 
     @Override
-    public void accept(DomainEventHandler handler) {
+    public <T> void accept(DomainEventHandler<T> handler) {
         handler.handle(this);
     }
 }

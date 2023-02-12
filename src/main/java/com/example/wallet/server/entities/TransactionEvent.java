@@ -21,4 +21,5 @@ public class TransactionEvent {
     private String transactionId;
     private int confirmationCount;
     private LocalDateTime occurredAt;
+    private TransactionStatus status;
 }
