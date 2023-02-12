@@ -2,43 +2,47 @@ package com.example.wallet.server.adaptor;
 
 import com.example.wallet.domain.DomainEventHandler;
 import com.example.wallet.domain.entities.Transaction;
-import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.*;
+import com.example.wallet.domain.programs.TxTransitionProgram;
 import com.example.wallet.server.mapper.TransactionMapper;
 import com.example.wallet.server.ports.TransactionPort;
 import lombok.NonNull;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Service
 public class TxTransitionHandler implements DomainEventHandler<Optional<Transaction>> {
 
     private final TransactionPort transactionPort;
+    private final TxTransitionProgram transitionProgram;
 
-    public TxTransitionHandler(@NonNull TransactionPort transactionPort) {
+    public TxTransitionHandler(@NonNull TransactionPort transactionPort, TxTransitionProgram transitionProgram) {
         this.transactionPort = transactionPort;
+        this.transitionProgram = transitionProgram;
     }
 
     @Override
     public Optional<Transaction> handle(TransactionConfirmed event) {
-        Transaction tx = getTransaction(event.getTransactionId());
-        return Optional.of(tx.confirmed(event.getConfirmedCount()));
+        Transaction tx = getTransaction(event.transactionId());
+        return Optional.of(transitionProgram.handle(event).apply(tx));
     }
 
     @Override
     public Optional<Transaction> handle(TransactionCommitted event) {
-        Transaction tx = getTransaction(event.getTransactionId());
-        return Optional.of(tx.committed(event.getCount()));
+        Transaction tx = getTransaction(event.transactionId());
+        return Optional.of(transitionProgram.handle(event).apply(tx));
     }
 
     @Override
     public Optional<Transaction> handle(TransactionRollback event) {
-        Transaction tx = getTransaction(event.getTransactionId());
-        return Optional.of(tx.statusUpdated(TransactionStatus.Failed));
+        Transaction tx = getTransaction(event.transactionId());
+        return Optional.of(transitionProgram.handle(event).apply(tx));
     }
 
     @Override
     public Optional<Transaction> handle(TransactionStarted event) {
-        return Optional.of(TransactionMapper.INSTANCE.fromStartedEvent(event));
+        return Optional.of(transitionProgram.handle(event).apply(Transaction.create(event.transactionId(), event.srcAddress(), event.dstAddress(), event.amount())));
     }
 
     @Override

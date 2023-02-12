@@ -23,9 +23,10 @@ class EthWalletProgramTest {
     void prepareWithdraw() {
         String addressFrom = "from";
         String addressTo = "to";
+        String secret = "secret";
         BigInteger balance = BigInteger.TEN;
         BigInteger amount = BigInteger.ONE;
-        EthWallet wallet = new EthWallet(addressFrom, balance);
+        EthWallet wallet = new EthWallet(addressFrom, secret, balance);
 
         sut.assertWithdraw(wallet, addressTo, amount, List.of());
     }
@@ -35,9 +36,10 @@ class EthWalletProgramTest {
         String addressFrom = "from";
         String addressTo = "to";
         String transactionId = "tx";
+        String secret = "secret";
         BigInteger balance = BigInteger.TEN;
         BigInteger amount = BigInteger.ONE;
-        EthWallet wallet = new EthWallet(addressFrom, balance);
+        EthWallet wallet = new EthWallet(addressFrom, secret, balance);
         Transaction tx = new Transaction(transactionId, addressFrom, addressTo, 12, amount, TransactionStatus.Confirmed);
 
         Result<EthWallet> result = sut.withdraw(wallet, tx);
@@ -50,9 +52,10 @@ class EthWalletProgramTest {
         String addressFrom = "from";
         String addressTo = "to";
         String transactionId = "tx";
+        String secret = "secret";
         BigInteger balance = BigInteger.TEN;
         BigInteger amount = BigInteger.ONE;
-        EthWallet wallet = new EthWallet(addressTo, balance);
+        EthWallet wallet = new EthWallet(addressTo, secret, balance);
         Transaction tx = new Transaction(transactionId, addressFrom, addressTo, 12, amount, TransactionStatus.Confirmed);
 
         Result<EthWallet> result = sut.deposit(wallet, tx);

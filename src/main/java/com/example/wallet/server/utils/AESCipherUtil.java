@@ -7,6 +7,7 @@ import org.web3j.crypto.*;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
@@ -22,10 +23,9 @@ public class AESCipherUtil {
             String iv = UUID.randomUUID().toString().substring(0, 16);
             IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes(StandardCharsets.UTF_8));
             cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParameterSpec);
-            String secret = iv.concat(new String(credentials.getEcKeyPair().getPrivateKey().toByteArray()));
-
-            byte[] encrypted = cipher.doFinal(secret.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+            byte[] encryptedPK = cipher.doFinal(credentials.getEcKeyPair().getPrivateKey().toByteArray());
+            String pKey = Base64.getEncoder().encodeToString(encryptedPK);
+            return Base64.getEncoder().encodeToString((iv.concat(pKey)).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -33,14 +33,15 @@ public class AESCipherUtil {
 
     public static String extractPKey(String password, String text) {
         try {
+            byte[] decoded = Base64.getDecoder().decode(text);
+            String decodedString = new String(decoded, StandardCharsets.UTF_8);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(decodedString.substring(0, 16).getBytes());
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             SecretKeySpec keySpec = new SecretKeySpec(password.getBytes(), "AES");
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(text.substring(0, 16).getBytes());
             cipher.init(Cipher.DECRYPT_MODE, keySpec, ivParameterSpec);
-
-            byte[] decoded = Base64.getDecoder().decode(text.substring(16));
-            byte[] pk = cipher.doFinal(decoded);
-            return new String(pk, StandardCharsets.UTF_8);
+            byte[] decodedPK = Base64.getDecoder().decode(decodedString.substring(16).getBytes(StandardCharsets.UTF_8));
+            byte[] pk = cipher.doFinal(decodedPK);
+            return new BigInteger(pk).toString(16);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

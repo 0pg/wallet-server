@@ -1,6 +1,7 @@
 package com.example.wallet.server.entities;
 
 import com.example.wallet.domain.entities.TransactionStatus;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -19,6 +20,7 @@ import java.math.BigInteger;
 @Table(name = "transactions")
 public final class TransactionDTO {
     @Id
+    @Column(name = "id")
     private String id;
     private String srcAddress;
     private String dstAddress;

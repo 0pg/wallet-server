@@ -1,12 +1,11 @@
 package com.example.wallet.server.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.GenericGenerator;
 
 import java.math.BigInteger;
 
@@ -18,18 +17,20 @@ import java.math.BigInteger;
 @Table(name = "eth_wallet")
 public final class EthWalletDTO {
     @Id
+    @Column(name = "address")
     private String address;
     private BigInteger balance;
+    private String secret;
 
-    public EthWalletDTO(String address) {
-        this(address, BigInteger.ZERO);
+    public EthWalletDTO(String address, String secret) {
+        this(address, BigInteger.ZERO, secret);
     }
 
     public EthWalletDTO withdrawn(BigInteger amount) {
-        return new EthWalletDTO(address, balance.subtract(amount));
+        return new EthWalletDTO(address, balance.subtract(amount), secret);
     }
 
     public EthWalletDTO deposited(BigInteger amount) {
-        return new EthWalletDTO(address, balance.add(amount));
+        return new EthWalletDTO(address, balance.add(amount), secret);
     }
 }

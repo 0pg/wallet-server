@@ -1,57 +1,54 @@
 package com.example.wallet.server.service;
 
+import com.example.wallet.domain.entities.EthWallet;
+import com.example.wallet.domain.entities.event.DomainEvent;
+import com.example.wallet.domain.programs.EthWalletProgram;
+import com.example.wallet.domain.programs.Result;
+import com.example.wallet.server.adaptor.DomainEventLogger;
+import com.example.wallet.server.adaptor.PersistEventHandler;
+import com.example.wallet.server.utils.AESCipherUtil;
 import org.springframework.stereotype.Service;
-import org.web3j.crypto.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.web3j.crypto.ECKeyPair;
+import org.web3j.crypto.Keys;
+import org.web3j.crypto.Wallet;
+import org.web3j.crypto.WalletFile;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.UUID;
+import java.util.List;
 
 @Service
 public class WalletService {
-    private static final String ALGORITHM = "AES/CBC/PKCS5Padding";
 
-    private WalletFile generateWallet(String password) {
+    private final EthWalletProgram walletProgram;
+    private final PersistEventHandler persistEventHandler;
+    private final DomainEventLogger eventLogger;
+
+    public WalletService(EthWalletProgram walletProgram, PersistEventHandler persistEventHandler, DomainEventLogger eventLogger) {
+        this.walletProgram = walletProgram;
+        this.persistEventHandler = persistEventHandler;
+        this.eventLogger = eventLogger;
+    }
+
+    public String generateWallet(String password) {
         try {
             ECKeyPair keyPair = Keys.createEcKeyPair();
-            return Wallet.createLight(password, keyPair);
+            WalletFile walletFile = Wallet.createLight(password, keyPair);
+            String secret = AESCipherUtil.generateSecret(password, walletFile);
+            Result<EthWallet> result = walletProgram.createWallet(walletFile.getAddress(), secret);
+            persist(result.events);
+            logEvents(result.events);
+            return result.value.address();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private String generateSecret(String password, WalletFile walletFile) {
-        try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            Credentials credentials = Credentials.create(Wallet.decrypt(password, walletFile));
-            SecretKeySpec keySpec = new SecretKeySpec(password.getBytes(), "AES");
-            String iv = UUID.randomUUID().toString().substring(0, 16);
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(iv.getBytes());
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivParameterSpec);
-            String secret = iv.concat(new String(credentials.getEcKeyPair().getPrivateKey().toByteArray()));
-
-            byte[] encrypted = cipher.doFinal(secret.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Transactional
+    private void persist(List<DomainEvent> events) {
+        events.forEach(event -> event.accept(persistEventHandler));
     }
 
-    private Credentials getCredentials(String password, String text) {
-        try {
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            SecretKeySpec keySpec = new SecretKeySpec(password.getBytes(), "AES");
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(text.substring(0, 16).getBytes());
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, ivParameterSpec);
-
-            byte[] decoded = Base64.getDecoder().decode(text.substring(16));
-            byte[] pk = cipher.doFinal(decoded);
-            return Credentials.create(new String(pk, StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    private void logEvents(List<DomainEvent> events) {
+        events.forEach(event -> event.accept(eventLogger));
     }
 }

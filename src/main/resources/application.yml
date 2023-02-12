@@ -2,6 +2,33 @@ spring:
   profiles:
     active: local
 
+--- #local
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:postgresql://localhost:5432/walletdb
+    username: postgres
+    password:
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database: postgresql
+    generate-ddl: false
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: true
+        use_sql_comments: true
+
+logging:
+  level:
+    root: INFO
 
 --- #test
 spring:
@@ -33,12 +60,3 @@ spring:
       path: /h2-console
       settings.trace: false
       settings.web-allow-others: false
-
-
-logging:
-  level:
-    org:
-      hibernate:
-        SQL: DEBUG
-        type:
-          trace

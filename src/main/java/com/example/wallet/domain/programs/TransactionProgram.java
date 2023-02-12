@@ -1,12 +1,13 @@
 package com.example.wallet.domain.programs;
 
+import com.example.wallet.domain.DomainEventHandler;
 import com.example.wallet.domain.entities.Transaction;
-import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.*;
 import lombok.NonNull;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 public class TransactionProgram {
@@ -14,54 +15,53 @@ public class TransactionProgram {
 
     private final Callable<LocalDateTime> timestampProvider;
     private final Callable<Long> eventIdProvider;
+    private final TxTransitionProgram transitionProgram;
 
     public TransactionProgram(@NonNull Callable<LocalDateTime> timestampProvider, @NonNull Callable<Long> eventIdProvider) {
         this.timestampProvider = timestampProvider;
         this.eventIdProvider = eventIdProvider;
+        this.transitionProgram = new TxTransitionProgram();
     }
 
     public Result<Transaction> createTransaction(@NonNull String transactionId, @NonNull String srcAddress, @NonNull String dstAddress, @NonNull BigInteger amount) {
-        Result.Builder<Transaction> builder = Result.builder();
         Transaction tx = Transaction.create(transactionId, srcAddress, dstAddress, amount);
+        Result.Builder<Transaction> builder = Result.builder(transitionProgram);
         return builder.addEvent(new TransactionStarted(generateEventId(), transactionId, srcAddress, dstAddress, amount, currentDateTime())).build(tx);
     }
 
     public Result<Transaction> commit(@NonNull Transaction tx, int count) {
-        int confirmationCount = Math.min(count, BLOCK_COUNT_FOR_CONFIRMATION - tx.confirmationCount());
-        Transaction updated = tx.committed(confirmationCount);
-
-        return switch (updated.status()) {
+        return switch (tx.status()) {
             case Pending -> {
-                if (updated.confirmationCount() < BLOCK_COUNT_FOR_CONFIRMATION) {
-                    yield acceptTransaction(updated, count);
+                if (tx.confirmationCount() + count < BLOCK_COUNT_FOR_CONFIRMATION) {
+                    yield acceptTransaction(tx, count);
                 } else {
-                    yield confirmTransaction(updated);
+                    yield confirmTransaction(tx);
                 }
             }
             case Mined -> {
-                if (updated.confirmationCount() == BLOCK_COUNT_FOR_CONFIRMATION) {
-                    yield confirmTransaction(updated);
+                if (tx.confirmationCount() + count >= BLOCK_COUNT_FOR_CONFIRMATION) {
+                    yield confirmTransaction(tx);
                 } else {
-                    yield commitTransaction(updated, count);
+                    yield commitTransaction(tx, count);
                 }
             }
-            case Confirmed -> new Result<>(updated);
+            case Confirmed -> new Result<>(tx);
             case Failed -> throw new RuntimeException();
         };
     }
 
     private Result<Transaction> acceptTransaction(Transaction tx, int count) {
-        Result.Builder<Transaction> builder = Result.builder();
+        Result.Builder<Transaction> builder = Result.builder(transitionProgram);
         long eventId = generateEventId();
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
                 .addEvent(new TransactionCommitted(eventId, currentDateTime, tx.id(), count))
-                .build(tx.statusUpdated(TransactionStatus.Mined));
+                .build(tx);
     }
 
     private Result<Transaction> commitTransaction(Transaction tx, int count) {
-        Result.Builder<Transaction> builder = Result.builder();
+        Result.Builder<Transaction> builder = Result.builder(transitionProgram);
         long eventId = generateEventId();
         LocalDateTime currentDateTime = currentDateTime();
 
@@ -71,22 +71,22 @@ public class TransactionProgram {
     }
 
     private Result<Transaction> confirmTransaction(Transaction tx) {
-        Result.Builder<Transaction> builder = Result.builder();
+        Result.Builder<Transaction> builder = Result.builder(transitionProgram);
         long eventId = generateEventId();
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionConfirmed(eventId, currentDateTime, tx.id(), tx.confirmationCount()))
+                .addEvent(new TransactionConfirmed(eventId, currentDateTime, tx.id(), BLOCK_COUNT_FOR_CONFIRMATION))
                 .addEvent(new Withdrawn(eventId, tx.srcAddress(), tx.amount(), currentDateTime))
                 .addEvent(new Deposited(eventId, tx.dstAddress(), tx.amount(), currentDateTime))
-                .build(tx.statusUpdated(TransactionStatus.Confirmed));
+                .build(tx);
     }
 
     public Result<Transaction> rollback(@NonNull Transaction tx) {
-        Result.Builder<Transaction> builder = Result.builder();
+        Result.Builder<Transaction> builder = Result.builder(transitionProgram);
         return builder
                 .addEvent(new TransactionRollback(generateEventId(), currentDateTime(), tx.id(), tx.amount()))
-                .build(tx.statusUpdated(TransactionStatus.Failed));
+                .build(tx);
     }
 
     private LocalDateTime currentDateTime() {

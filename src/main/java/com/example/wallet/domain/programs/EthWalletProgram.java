@@ -16,18 +16,20 @@ import java.util.concurrent.Callable;
 public class EthWalletProgram {
     private final Callable<LocalDateTime> timestampProvider;
     private final Callable<Long> eventIdProvider;
+    private final EthWalletTransitionProgram transitionProgram;
 
     public EthWalletProgram(@NonNull Callable<LocalDateTime> timestampProvider, @NonNull Callable<Long> eventIdProvider) {
         this.timestampProvider = timestampProvider;
         this.eventIdProvider = eventIdProvider;
+        this.transitionProgram = new EthWalletTransitionProgram();
     }
 
     public Result<EthWallet> createWallet(@NonNull String getAddress, @NonNull String secret) {
         try {
-            Result.Builder<EthWallet> builder = Result.builder();
+            Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
             LocalDateTime currentDateTime = currentDateTime();
             builder.addEvent(new WalletCreated(generateEventId(), getAddress, secret, currentDateTime));
-            EthWallet wallet = EthWallet.create(getAddress);
+            EthWallet wallet = EthWallet.create(getAddress, secret);
             return builder.build(wallet);
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -48,10 +50,10 @@ public class EthWalletProgram {
             throw new RuntimeException();
         }
 
-        Result.Builder<EthWallet> builder = Result.builder();
+        Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
         BigInteger amount = tx.amount();
         builder.addEvent(new Withdrawn(generateEventId(), wallet.address(), amount, currentDateTime()));
-        return builder.build(wallet.withdrawn(amount));
+        return builder.build(wallet);
     }
 
     public Result<EthWallet> deposit(@NonNull EthWallet wallet, @NonNull Transaction tx) {
@@ -63,10 +65,10 @@ public class EthWalletProgram {
             throw new RuntimeException();
         }
 
-        Result.Builder<EthWallet> builder = Result.builder();
+        Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
         BigInteger amount = tx.amount();
         builder.addEvent(new Deposited(generateEventId(), wallet.address(), amount, currentDateTime()));
-        return builder.build(wallet.deposited(amount));
+        return builder.build(wallet);
     }
 
     private void assertWithdrawable(

@@ -3,17 +3,22 @@ package com.example.wallet.server.adaptor;
 import com.example.wallet.domain.DomainEventHandler;
 import com.example.wallet.domain.entities.EthWallet;
 import com.example.wallet.domain.entities.event.*;
+import com.example.wallet.domain.programs.EthWalletTransitionProgram;
 import com.example.wallet.server.mapper.EthWalletMapper;
 import com.example.wallet.server.ports.EthWalletPort;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Service
 public class EthWalletTransitionHandler implements DomainEventHandler<Optional<EthWallet>> {
 
-    private final EthWalletPort walletPort;
+    private final EthWalletPort ethWalletPort;
+    private final EthWalletTransitionProgram walletTransitionProgram;
 
-    public EthWalletTransitionHandler(EthWalletPort walletPort) {
-        this.walletPort = walletPort;
+    public EthWalletTransitionHandler(EthWalletPort ethWalletPort, EthWalletTransitionProgram walletTransitionProgram) {
+        this.ethWalletPort = ethWalletPort;
+        this.walletTransitionProgram = walletTransitionProgram;
     }
 
     @Override
@@ -38,23 +43,22 @@ public class EthWalletTransitionHandler implements DomainEventHandler<Optional<E
 
     @Override
     public Optional<EthWallet> handle(Deposited event) {
-        return Optional.of(getWallet(event.getWalletAddress()).deposited(event.getAmount()));
+        return getWallet(event.walletAddress())
+                .map(wallet -> walletTransitionProgram.handle(event).apply(wallet));
     }
 
     @Override
     public Optional<EthWallet> handle(Withdrawn event) {
-        return Optional.of(getWallet(event.getWalletAddress()).withdrawn(event.getAmount()));
+        return getWallet(event.walletAddress())
+                .map(wallet -> walletTransitionProgram.handle(event).apply(wallet));
     }
 
     @Override
     public Optional<EthWallet> handle(WalletCreated event) {
-        return Optional.of(EthWalletMapper.INSTANCE.fromCreatedEvent(event));
+        return Optional.of(walletTransitionProgram.handle(event).apply(EthWallet.create(event.walletAddress(), event.secret())));
     }
 
-    private EthWallet getWallet(String address) {
-        return EthWalletMapper.INSTANCE.toEntity(
-                walletPort.findById(address)
-                        .orElseThrow(() -> new RuntimeException())
-        );
+    private Optional<EthWallet> getWallet(String address) {
+        return ethWalletPort.findById(address).map(EthWalletMapper.INSTANCE::toEntity);
     }
 }

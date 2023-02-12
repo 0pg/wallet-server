@@ -14,8 +14,10 @@ public interface EthWalletMapper {
 
     EthWallet toEntity(EthWalletDTO dto);
 
-    EthWalletDTO toDTO(EthWallet entity);
+    EthWalletDTO toDTO(
+            EthWallet entity);
 
     @Mapping(target = "balance", constant = "0")
-    EthWallet fromCreatedEvent(WalletCreated event);
+    @Mapping(target = "address", source = "walletAddress")
+    EthWalletDTO fromCreatedEvent(WalletCreated event);
 }

@@ -1,11 +1,13 @@
 package com.example.wallet.domain.programs;
 
-import com.example.wallet.domain.entities.event.DomainEvent;
+import com.example.wallet.domain.DomainEventHandler;
+import com.example.wallet.domain.entities.event.*;
 import lombok.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 public final class Result<T> {
 
@@ -13,17 +15,13 @@ public final class Result<T> {
 
     public final List<DomainEvent> events;
 
-    private Result(@NonNull T value, @NonNull List<DomainEvent> events) {
+    private Result(T value, @NonNull List<DomainEvent> events) {
         this.value = value;
         this.events = events;
     }
 
-    public Result(@NonNull T value) {
+    public Result(T value) {
         this(value, List.of());
-    }
-
-    public <U> Builder<U> toBuilder() {
-        return new Builder<>(events);
     }
 
     public static Result<Void> empty() {
@@ -32,32 +30,70 @@ public final class Result<T> {
 
 
     static class Builder<T> {
+        private Function<T, T> transition;
+
+        private final DomainEventHandler<Function<T, T>> transistor;
+
         private final List<DomainEvent> events;
 
-        public Builder(List<DomainEvent> events) {
+        public Builder(List<DomainEvent> events, DomainEventHandler<Function<T, T>> transistor) {
+            this.transition = Function.identity();
             this.events = new ArrayList<>(events);
+            this.transistor = transistor;
         }
 
-        public Builder() {
-            this(List.of());
+        public Builder(DomainEventHandler<Function<T, T>> transistor) {
+            this(List.of(), transistor);
         }
 
-        public Builder<T> addEvent(DomainEvent event) {
-            this.events.add(event);
+        public Result<T> build(T state) {
+            return new Result<>(transition.apply(state), Collections.unmodifiableList(events));
+        }
+
+        public Builder<T> addEvent(TransactionConfirmed event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
             return this;
         }
 
-        public Builder<T> addEvents(List<DomainEvent> events) {
-            this.events.addAll(events);
+        public Builder<T> addEvent(TransactionCommitted event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
             return this;
         }
 
-        public Result<T> build(T result) {
-            return new Result<>(result, Collections.unmodifiableList(events));
+        public Builder<T> addEvent(TransactionRollback event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
+            return this;
+        }
+
+        public Builder<T> addEvent(TransactionStarted event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
+            return this;
+        }
+
+        public Builder<T> addEvent(Deposited event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
+            return this;
+        }
+
+        public Builder<T> addEvent(Withdrawn event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
+            return this;
+        }
+
+        public Builder<T> addEvent(WalletCreated event) {
+            this.transition = transition.andThen(transistor.handle(event));
+            events.add(event);
+            return this;
         }
     }
 
-    public static <T> Builder<T> builder() {
-        return new Builder<>();
+    public static <T> Builder<T> builder(DomainEventHandler<Function<T, T>> transistor) {
+        return new Builder<>(transistor);
     }
 }

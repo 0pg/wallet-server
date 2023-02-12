@@ -1,19 +1,11 @@
 package com.example.wallet.domain.entities.event;
 
 import com.example.wallet.domain.DomainEventHandler;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
-@Getter
-@AllArgsConstructor
-public final class WalletCreated implements WalletEvent {
-    private final long eventId;
-    private final String walletAddress;
-    private final String secret;
-    private final LocalDateTime occurredAt;
-
+public record WalletCreated(long eventId, String walletAddress, String secret,
+                            LocalDateTime occurredAt) implements WalletEvent {
     @Override
     public <T> void accept(DomainEventHandler<T> handler) {
         handler.handle(this);

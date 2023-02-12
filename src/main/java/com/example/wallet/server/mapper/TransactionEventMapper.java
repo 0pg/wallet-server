@@ -14,7 +14,7 @@ import org.mapstruct.factory.Mappers;
 public interface TransactionEventMapper {
     TransactionEventMapper INSTANCE = Mappers.getMapper(TransactionEventMapper.class);
 
-    @Mapping(target = "confirmationCount", source = "count")
+    @Mapping(target = "confirmationCount", source = "committedCount")
     @Mapping(target = "status", constant = "Mined")
     TransactionEvent fromCommitted(TransactionCommitted event);
 

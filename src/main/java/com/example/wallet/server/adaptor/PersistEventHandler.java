@@ -1,8 +1,6 @@
 package com.example.wallet.server.adaptor;
 
 import com.example.wallet.domain.DomainEventHandler;
-import com.example.wallet.domain.entities.EthWallet;
-import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.event.*;
 import com.example.wallet.server.mapper.EthWalletMapper;
 import com.example.wallet.server.mapper.TransactionEventMapper;
@@ -11,7 +9,14 @@ import com.example.wallet.server.ports.EthWalletPort;
 import com.example.wallet.server.ports.TransactionEventPort;
 import com.example.wallet.server.ports.TransactionPort;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+@Slf4j
+@Service
 public class PersistEventHandler implements DomainEventHandler<Void> {
     private final TransactionPort transactionPort;
     private final EthWalletPort walletPort;
@@ -31,17 +36,13 @@ public class PersistEventHandler implements DomainEventHandler<Void> {
         this.walletTransitionHandler = walletTransitionHandler;
     }
 
-
-    private EthWallet getWallet(String address) {
-        return EthWalletMapper.INSTANCE.toEntity(
-                walletPort.findById(address).orElseThrow(() -> new RuntimeException())
-        );
-    }
-
-    private Transaction getTransaction(String transactionId) {
-        return TransactionMapper.INSTANCE.toEntity(
-                transactionPort.findById(transactionId).orElseThrow(() -> new RuntimeException())
-        );
+    @Transactional
+    public void persistEvents(List<DomainEvent> events) {
+        try {
+            events.forEach(event -> event.accept(this));
+        } catch (Exception e) {
+            log.error(e.getCause().getMessage());
+        }
     }
 
     @Override
@@ -97,9 +98,7 @@ public class PersistEventHandler implements DomainEventHandler<Void> {
 
     @Override
     public Void handle(WalletCreated event) {
-        walletTransitionHandler.handle(event)
-                .map(EthWalletMapper.INSTANCE::toDTO)
-                .ifPresent(walletPort::save);
+        walletPort.save(EthWalletMapper.INSTANCE.fromCreatedEvent(event));
         return null;
     }
 }
