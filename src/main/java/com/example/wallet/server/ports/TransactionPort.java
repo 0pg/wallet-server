@@ -1,21 +1,9 @@
 package com.example.wallet.server.ports;
 
-import com.example.wallet.domain.entities.Transaction;
+import com.example.wallet.server.entities.TransactionDTO;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
-import java.math.BigInteger;
-import java.util.List;
-import java.util.Optional;
-
-public interface TransactionPort {
-    List<Transaction> getAllTransactions(String walletAddress);
-
-    List<Transaction> getOngoingTransactions(String walletAddress);
-
-    Optional<Transaction> findTransaction(String transactionId);
-
-    BigInteger getTransactionCount(String walletAddress);
-
-    void createTransaction(Transaction tx);
-
-    void updateTransaction(Transaction tx);
+@Repository
+public interface TransactionPort extends CrudRepository<TransactionDTO, String> {
 }

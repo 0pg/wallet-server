@@ -22,12 +22,12 @@ public class EthWalletProgram {
         this.eventIdProvider = eventIdProvider;
     }
 
-    public Result<EthWallet> createWallet(@NonNull String address, @NonNull String secret) {
+    public Result<EthWallet> createWallet(@NonNull String getAddress, @NonNull String secret) {
         try {
             Result.Builder<EthWallet> builder = Result.builder();
             LocalDateTime currentDateTime = currentDateTime();
-            builder.addEvent(new WalletCreated(generateEventId(), address, secret, currentDateTime));
-            EthWallet wallet = new EthWallet(address);
+            builder.addEvent(new WalletCreated(generateEventId(), getAddress, secret, currentDateTime));
+            EthWallet wallet = EthWallet.create(getAddress);
             return builder.build(wallet);
         } catch (Exception e) {
             throw new RuntimeException(e);

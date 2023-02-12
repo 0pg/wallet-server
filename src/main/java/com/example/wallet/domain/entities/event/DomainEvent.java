@@ -5,9 +5,9 @@ import com.example.wallet.domain.DomainEventHandler;
 import java.time.LocalDateTime;
 
 public sealed interface DomainEvent permits TransactionEvent, WalletEvent {
-    long eventId();
+    long getEventId();
 
-    LocalDateTime occurredAt();
+    LocalDateTime getOccurredAt();
 
     void accept(DomainEventHandler handler);
 }

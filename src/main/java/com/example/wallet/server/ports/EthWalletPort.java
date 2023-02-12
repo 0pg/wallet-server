@@ -1,14 +1,9 @@
 package com.example.wallet.server.ports;
 
-import com.example.wallet.domain.entities.EthWallet;
+import com.example.wallet.server.entities.EthWalletDTO;
+import org.springframework.data.repository.CrudRepository;
+import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-
-public interface EthWalletPort {
-    Optional<EthWallet> findWallet(String address);
-
-    void createWallet(EthWallet wallet);
-
-    void updateWallet(EthWallet wallet);
+@Repository
+public interface EthWalletPort extends CrudRepository<EthWalletDTO, String> {
 }

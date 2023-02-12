@@ -2,16 +2,10 @@ package com.example.wallet.domain.entities;
 
 import java.math.BigInteger;
 
-public record Transaction(
-        String id,
-        String srcAddress,
-        String dstAddress,
-        int confirmationCount,
-        BigInteger amount,
-        TransactionStatus status) {
-
-    public Transaction(String id, String srcAddress, String dstAddress, BigInteger amount) {
-        this(id, srcAddress, dstAddress, 0, amount, TransactionStatus.Pending);
+public record Transaction(String id, String srcAddress, String dstAddress, int confirmationCount, BigInteger amount,
+                          TransactionStatus status) {
+    public static Transaction create(String id, String srcAddress, String dstAddress, BigInteger amount) {
+        return new Transaction(id, srcAddress, dstAddress, 0, amount, TransactionStatus.Pending);
     }
 
     public Transaction statusUpdated(TransactionStatus updatedStatus) {
