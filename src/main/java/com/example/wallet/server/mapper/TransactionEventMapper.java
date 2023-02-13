@@ -18,7 +18,7 @@ public interface TransactionEventMapper {
     @Mapping(target = "status", constant = "Mined")
     TransactionEvent fromCommitted(TransactionCommitted event);
 
-    @Mapping(target = "confirmationCount", constant = "0")
+    @Mapping(target = "confirmationCount", constant = "confirmedCount")
     @Mapping(target = "status", constant = "Confirmed")
     TransactionEvent fromConfirmed(TransactionConfirmed event);
 

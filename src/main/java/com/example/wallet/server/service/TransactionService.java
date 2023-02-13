@@ -29,7 +29,7 @@ public class TransactionService implements BlockEventListener {
     private final EthWalletPort walletPort;
     private final DomainEventLogger eventLogger;
 
-    public TransactionService(TransactionProgram transactionProgram, TransactionPort transactionPort, PersistEventHandler persistEventHandler, OnChainService onChainService, EthWalletPort walletPort, DomainEventLogger eventLogger) {
+    public TransactionService(@NonNull TransactionProgram transactionProgram, @NonNull TransactionPort transactionPort, @NonNull PersistEventHandler persistEventHandler, @NonNull OnChainService onChainService, @NonNull EthWalletPort walletPort, @NonNull DomainEventLogger eventLogger) {
         this.transactionProgram = transactionProgram;
         this.transactionPort = transactionPort;
         this.persistEventHandler = persistEventHandler;
@@ -55,7 +55,7 @@ public class TransactionService implements BlockEventListener {
     }
 
     @Override
-    public void handle(EthBlock.Block block) {
+    public void handle(@NonNull EthBlock.Block block) {
         try {
             Stream.concat(
                     block.getTransactions().stream()
@@ -71,7 +71,7 @@ public class TransactionService implements BlockEventListener {
         }
     }
 
-    private void commit(@NonNull Transaction tx, int count) {
+    private void commit(Transaction tx, int count) {
         try {
             Result<Transaction> result = transactionProgram.commit(tx, count);
             persistEventHandler.persistEvents(result.events);

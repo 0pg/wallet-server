@@ -17,7 +17,7 @@ public record Transaction(String id,
     }
 
     public Transaction committed(int count) {
-        return new Transaction(id, srcAddress, dstAddress, confirmationCount + count, amount, TransactionStatus.Mined);
+        return new Transaction(id, srcAddress, dstAddress, count, amount, TransactionStatus.Mined);
     }
 
     public Transaction confirmed(int count) {

@@ -65,7 +65,7 @@ public class TransactionProgram {
         LocalDateTime currentDateTime = currentDateTime();
 
         return builder
-                .addEvent(new TransactionCommitted(eventId, currentDateTime, tx.id(), count))
+                .addEvent(new TransactionCommitted(eventId, currentDateTime, tx.id(), tx.confirmationCount() + count))
                 .build(tx);
     }
 
