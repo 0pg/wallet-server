@@ -1,6 +1,7 @@
 package com.example.wallet.server.utils;
 
 import com.example.wallet.domain.entities.EthWallet;
+import com.example.wallet.server.exception.InvalidInput;
 import lombok.NonNull;
 import org.web3j.crypto.*;
 
@@ -27,7 +28,7 @@ public class AESCipherUtil {
             String pKey = Base64.getEncoder().encodeToString(encryptedPK);
             return Base64.getEncoder().encodeToString((iv.concat(pKey)).getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new InvalidInput("create secret", e);
         }
     }
 
@@ -43,7 +44,7 @@ public class AESCipherUtil {
             byte[] pk = cipher.doFinal(decodedPK);
             return new BigInteger(pk).toString(16);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new InvalidInput("decode secret", e);
         }
     }
 }

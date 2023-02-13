@@ -1,12 +1,13 @@
 package com.example.wallet.server.service;
 
 import com.example.wallet.domain.entities.Transaction;
+import com.example.wallet.domain.entities.event.DomainEvent;
 import com.example.wallet.domain.programs.Result;
 import com.example.wallet.domain.programs.TransactionProgram;
 import com.example.wallet.server.adaptor.DomainEventLogger;
 import com.example.wallet.server.adaptor.PersistEventHandler;
+import com.example.wallet.server.exception.InvalidInput;
 import com.example.wallet.server.mapper.TransactionMapper;
-import com.example.wallet.server.ports.BlockEventListener;
 import com.example.wallet.server.ports.EthWalletPort;
 import com.example.wallet.server.ports.TransactionPort;
 import com.example.wallet.server.utils.AESCipherUtil;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.web3j.protocol.core.methods.response.EthBlock;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -50,25 +52,52 @@ public class TransactionService implements BlockEventListener {
             eventLogger.logEvents(result.events);
             return result.value.id();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new InvalidInput("create transaction", e);
         }
     }
 
     @Override
     public void handle(@NonNull EthBlock.Block block) {
         try {
-            Stream.concat(
-                    block.getTransactions().stream()
-                            .map(result -> ((EthBlock.TransactionHash) result).get())
-                            .map(transactionPort::findTransactionEntity)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get),
-                    transactionPort.findMinedTransactions().stream()
-                            .map(TransactionMapper.INSTANCE::toEntity)
-            ).forEach(tx -> commit(tx, 1));
+            handleBlockTransaction(block);
+            handleExternalBlockTransaction(block);
         } catch (Exception e) {
-            log.error(e.getCause().getMessage());
+            log.error("new block handler", e);
+            throw e;
         }
+
+    }
+
+    private void handleBlockTransaction(EthBlock.Block block) {
+        Stream.concat(
+                getBlockTransactionStream(block)
+                        .map(tx -> transactionPort.findTransactionEntity(tx.getHash()))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get),
+                transactionPort.findMinedTransactions().stream()
+                        .map(TransactionMapper.INSTANCE::toEntity)
+        ).forEach(tx -> commit(tx, 1));
+    }
+
+    private void handleExternalBlockTransaction(EthBlock.Block block) {
+        getBlockTransactionStream(block)
+                .filter(tx ->
+                        Optional.ofNullable(tx.getTo())
+                                .flatMap(walletPort::findById)
+                                .isPresent()
+                )
+                .forEach(tx -> {
+                    Result<Transaction> created = transactionProgram.createTransaction(tx.getHash(), tx.getFrom(), tx.getTo(), tx.getValue());
+                    Result<Transaction> committed = transactionProgram.commit(created.value, 1);
+                    List<DomainEvent> events = Stream.concat(created.events.stream(), committed.events.stream()).toList();
+                    persistEventHandler.persistEvents(events);
+                    eventLogger.logEvents(events);
+                });
+    }
+
+    private Stream<org.web3j.protocol.core.methods.response.Transaction> getBlockTransactionStream(EthBlock.Block block) {
+        return block.getTransactions().stream()
+                .map(result -> ((EthBlock.TransactionObject) result.get()));
     }
 
     private void commit(Transaction tx, int count) {
@@ -77,7 +106,8 @@ public class TransactionService implements BlockEventListener {
             persistEventHandler.persistEvents(result.events);
             eventLogger.logEvents(result.events);
         } catch (Exception e) {
-            log.error(e.getCause().getMessage());
+            log.error("commit transaction", e);
+            throw e;
         }
     }
 }

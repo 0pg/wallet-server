@@ -4,6 +4,7 @@ import com.example.wallet.domain.DomainEventHandler;
 import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.event.*;
 import com.example.wallet.domain.programs.TxTransitionProgram;
+import com.example.wallet.server.exception.DataNotFound;
 import com.example.wallet.server.mapper.TransactionMapper;
 import com.example.wallet.server.ports.TransactionPort;
 import lombok.NonNull;
@@ -62,7 +63,7 @@ public class TxTransitionHandler implements DomainEventHandler<Optional<Transact
 
     private Transaction getTransaction(String txId) {
         return TransactionMapper.INSTANCE.toEntity(
-                transactionPort.findById(txId).orElseThrow(() -> new RuntimeException())
+                transactionPort.findById(txId).orElseThrow(() -> new DataNotFound("transaction", txId))
         );
     }
 }

@@ -6,6 +6,7 @@ import com.example.wallet.domain.programs.EthWalletProgram;
 import com.example.wallet.domain.programs.Result;
 import com.example.wallet.server.adaptor.DomainEventLogger;
 import com.example.wallet.server.adaptor.PersistEventHandler;
+import com.example.wallet.server.exception.InvalidInput;
 import com.example.wallet.server.utils.AESCipherUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,12 +35,12 @@ public class WalletService {
             ECKeyPair keyPair = Keys.createEcKeyPair();
             WalletFile walletFile = Wallet.createLight(password, keyPair);
             String secret = AESCipherUtil.generateSecret(password, walletFile);
-            Result<EthWallet> result = walletProgram.createWallet(walletFile.getAddress(), secret);
+            Result<EthWallet> result = walletProgram.createWallet("0x" + walletFile.getAddress(), secret);
             persist(result.events);
             logEvents(result.events);
             return result.value.address();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new InvalidInput("create wallet", e);
         }
     }
 

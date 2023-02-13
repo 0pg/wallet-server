@@ -1,4 +1,4 @@
-package com.example.wallet.server.ports;
+package com.example.wallet.server.service;
 
 import org.web3j.protocol.core.methods.response.EthBlock;
 

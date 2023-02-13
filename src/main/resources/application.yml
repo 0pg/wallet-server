@@ -7,10 +7,12 @@ spring:
   config:
     activate:
       on-profile: local
+  server:
+    port: 8080
   datasource:
-    url: jdbc:postgresql://localhost:5432/walletdb
+    url: jdbc:postgresql://wallet-db:5432/postgres
     username: postgres
-    password:
+    password: 1234
     driver-class-name: org.postgresql.Driver
 
   jpa:

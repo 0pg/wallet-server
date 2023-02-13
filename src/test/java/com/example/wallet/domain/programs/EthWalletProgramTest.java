@@ -5,6 +5,8 @@ import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.Deposited;
 import com.example.wallet.domain.entities.event.Withdrawn;
+import com.example.wallet.domain.exception.InvalidState;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -20,19 +22,59 @@ class EthWalletProgramTest {
     private final EthWalletProgram sut = new EthWalletProgram(() -> currentDateTime, () -> eventId);
 
     @Test
-    void prepareWithdraw() {
+    void assert_fail_when_insufficient_balance() {
         String addressFrom = "from";
         String addressTo = "to";
+        String secret = "secret";
+        BigInteger balance = BigInteger.ONE;
+        BigInteger amount = BigInteger.TEN;
+        EthWallet wallet = new EthWallet(addressFrom, secret, balance);
+
+        Assertions.assertThrows(InvalidState.class, () -> sut.assertWithdraw(wallet, addressTo, amount, List.of()));
+    }
+
+    @Test
+    void assert_fail_when_same_src_and_dst() {
+        String addressFrom = "from";
+        String addressTo = "from";
+        String secret = "secret";
+        BigInteger balance = BigInteger.TEN;
+        BigInteger amount = BigInteger.TEN;
+        EthWallet wallet = new EthWallet(addressFrom, secret, balance);
+
+        Assertions.assertThrows(InvalidState.class, () -> sut.assertWithdraw(wallet, addressTo, amount, List.of()));
+    }
+
+    @Test
+    void lift_withdrawn_event_only_with_confirmed_transaction() {
+        String addressFrom = "from";
+        String addressTo = "to";
+        String transactionId = "tx";
         String secret = "secret";
         BigInteger balance = BigInteger.TEN;
         BigInteger amount = BigInteger.ONE;
         EthWallet wallet = new EthWallet(addressFrom, secret, balance);
+        Transaction tx = new Transaction(transactionId, addressFrom, addressTo, 12, amount, TransactionStatus.Mined);
 
-        sut.assertWithdraw(wallet, addressTo, amount, List.of());
+        Assertions.assertThrows(InvalidState.class, () -> sut.withdraw(wallet, tx));
     }
 
     @Test
-    void withdrawn() {
+    void lift_withdrawn_event_only_with_valid_address() {
+        String addressFrom = "from";
+        String addressTo = "from";
+        String transactionId = "tx";
+        String secret = "secret";
+        BigInteger balance = BigInteger.TEN;
+        BigInteger amount = BigInteger.ONE;
+        EthWallet wallet = new EthWallet(addressFrom, secret, balance);
+        Transaction tx = new Transaction(transactionId, addressFrom, addressTo, 12, amount, TransactionStatus.Confirmed);
+
+        Assertions.assertThrows(InvalidState.class, () -> sut.withdraw(wallet, tx));
+    }
+
+    @Test
+    void lift_withdrawn_event() {
         String addressFrom = "from";
         String addressTo = "to";
         String transactionId = "tx";
@@ -48,7 +90,7 @@ class EthWalletProgramTest {
     }
 
     @Test
-    void deposited() {
+    void lift_deposited_event() {
         String addressFrom = "from";
         String addressTo = "to";
         String transactionId = "tx";
