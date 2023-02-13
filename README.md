@@ -47,3 +47,16 @@ API
     - `/ POST` 지갑 생성 후 지갑 주소 반환
       - `password` 지갑 비밀번호 (32byte string)
 
+### 요청 처리 흐름
+ `Controller` -> `Service` -> `Program` -> `EventHandler`
+- `Service`
+	- 외부 컴포넌트와 통신
+		- DB 로부터 데이터 조회
+		- 이더리움 네트워크 상태 변화 추적
+	- `Program` 을 실행하기 위한 데이터 준비
+- `Program`
+	- 지갑, 트랜잭션에 대한 비지니스 로직
+	- 실행 결과로 생성된 event 반환
+	- event 로부터 entity 의 상태를 변경
+- `EventHandler`
+	- event 들 로부터 변경된 상태의 entity 를 만들고 디비에 쓰거나 로깅
