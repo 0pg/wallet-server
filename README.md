@@ -35,7 +35,7 @@ API
       - `dstAddress` 수신 지갑 주소 (hex string format)
       - `password` 송금 지갑 주소 비밀번호 (32byte string)
       - `amount` 송금하려는 ethereum 수량 (Wei)
-    - '/event' 
+    - `/event`
       - `/ GET` 트랜잭션 상태 변화 이벤트들 조회
         - `start (query string) (optional)` 조회 범위 시작 날짜 (ISO_DATE_TIME format)
         - `end (query string) (optional)` 조회 범위 종료 날짜 (ISO_DATE_TIME format)
