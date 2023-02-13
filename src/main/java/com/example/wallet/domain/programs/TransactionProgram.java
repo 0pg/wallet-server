@@ -1,13 +1,12 @@
 package com.example.wallet.domain.programs;
 
-import com.example.wallet.domain.DomainEventHandler;
 import com.example.wallet.domain.entities.Transaction;
 import com.example.wallet.domain.entities.event.*;
+import com.example.wallet.domain.exception.Unexpected;
 import lombok.NonNull;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.concurrent.Callable;
 
 public class TransactionProgram {
@@ -93,7 +92,7 @@ public class TransactionProgram {
         try {
             return timestampProvider.call();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new Unexpected(e, "timestampProvider");
         }
     }
 
@@ -101,7 +100,7 @@ public class TransactionProgram {
         try {
             return eventIdProvider.call();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new Unexpected(e, "eventIdProvider");
         }
     }
 }

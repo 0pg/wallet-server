@@ -6,6 +6,10 @@ import com.example.wallet.domain.entities.TransactionStatus;
 import com.example.wallet.domain.entities.event.Deposited;
 import com.example.wallet.domain.entities.event.WalletCreated;
 import com.example.wallet.domain.entities.event.Withdrawn;
+import com.example.wallet.domain.exception.InvalidState;
+import com.example.wallet.domain.exception.Unexpected;
+import com.example.wallet.domain.exception.WalletCreationFailed;
+import com.example.wallet.domain.exception.InsufficientBalance;
 import lombok.NonNull;
 
 import java.math.BigInteger;
@@ -24,15 +28,15 @@ public class EthWalletProgram {
         this.transitionProgram = new EthWalletTransitionProgram();
     }
 
-    public Result<EthWallet> createWallet(@NonNull String getAddress, @NonNull String secret) {
+    public Result<EthWallet> createWallet(@NonNull String address, @NonNull String secret) {
         try {
             Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
             LocalDateTime currentDateTime = currentDateTime();
-            builder.addEvent(new WalletCreated(generateEventId(), getAddress, secret, currentDateTime));
-            EthWallet wallet = EthWallet.create(getAddress, secret);
+            builder.addEvent(new WalletCreated(generateEventId(), address, secret, currentDateTime));
+            EthWallet wallet = EthWallet.create(address, secret);
             return builder.build(wallet);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new WalletCreationFailed(e, address);
         }
     }
 
@@ -43,11 +47,11 @@ public class EthWalletProgram {
 
     public Result<EthWallet> withdraw(@NonNull EthWallet wallet, @NonNull Transaction tx) {
         if (tx.status() != TransactionStatus.Confirmed) {
-            throw new RuntimeException();
+            throw new InvalidState("withdraw", "transaction status " + tx.status().name());
         }
 
         if (wallet.address().equals(tx.srcAddress()) == false) {
-            throw new RuntimeException();
+            throw new InvalidState("withdraw", "different tx and wallet address " + wallet.address() + "," + tx.srcAddress());
         }
 
         Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
@@ -58,11 +62,11 @@ public class EthWalletProgram {
 
     public Result<EthWallet> deposit(@NonNull EthWallet wallet, @NonNull Transaction tx) {
         if (tx.status() != TransactionStatus.Confirmed) {
-            throw new RuntimeException();
+            throw new InvalidState("deposit", "transaction status " + tx.status().name());
         }
 
         if (wallet.address().equals(tx.dstAddress()) == false) {
-            throw new RuntimeException();
+            throw new InvalidState("withdraw", "different tx and wallet address " + wallet.address() + "," + tx.dstAddress());
         }
 
         Result.Builder<EthWallet> builder = Result.builder(transitionProgram);
@@ -77,25 +81,25 @@ public class EthWalletProgram {
             BigInteger amount,
             List<Transaction> ongoingTransactions) {
         if (amount.longValue() <= 0L) {
-            throw new RuntimeException();
+            throw new InvalidState("withdrawable", "amount " + amount);
         }
 
         if (wallet.address().equals(to)) {
-            throw new RuntimeException();
+            throw new InvalidState("withdrawable", "same src and dst address" + to);
         }
 
         assertWithdrawBalance(wallet, amount, ongoingTransactions);
     }
 
     private void assertWithdrawBalance(EthWallet wallet, BigInteger amount, List<Transaction> transactions) {
-        BigInteger pendingWithdraw = getPendingBalance(transactions);
-
-        if (wallet.balance().subtract(pendingWithdraw).longValue() < amount.longValue()) {
-            throw new RuntimeException();
+        BigInteger pendingWithdraw = getOngoingBalance(transactions);
+        BigInteger balance = wallet.balance().subtract(pendingWithdraw);
+        if (balance.longValue() < amount.longValue()) {
+            throw new InsufficientBalance(balance, amount);
         }
     }
 
-    private BigInteger getPendingBalance(List<Transaction> transactions) {
+    private BigInteger getOngoingBalance(List<Transaction> transactions) {
         return transactions.stream()
                 .filter(tx -> tx.status().isOngoing())
                 .map(Transaction::amount)
@@ -106,7 +110,7 @@ public class EthWalletProgram {
         try {
             return timestampProvider.call();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new Unexpected(e, "timestampProvider");
         }
     }
 
@@ -114,7 +118,7 @@ public class EthWalletProgram {
         try {
             return eventIdProvider.call();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new Unexpected(e, "eventIdProvider");
         }
     }
 }
